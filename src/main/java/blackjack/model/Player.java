@@ -7,12 +7,13 @@ import java.util.List;
 
 public class Player {
 
-    private String id;
-    private List<blackjack.model.Card> cards = new ArrayList<blackjack.model.Card>();
+    private static Integer idCount = 0;
+    private Integer id;
+    private List<Card> cards = new ArrayList<Card>();
     private Boolean showScore;
 
-    public Player(String id, Boolean showScore) {
-        this.id = id;
+    public Player(Boolean showScore) {
+        this.id = idCount++;
         this.showScore = showScore;
     }
 
@@ -20,14 +21,14 @@ public class Player {
         cards.clear();
     }
 
-    public void add(blackjack.model.Card card) {
+    public void add(Card card) {
         cards.add(card);
     }
 
     public Integer score() {
         int score = 0, aces = 0;
 
-        for (blackjack.model.Card card : cards) {
+        for (Card card : cards) {
             if (card.getNumber() == Card.Number.Ace) {
                 score += 11;
                 ++aces;
@@ -47,7 +48,7 @@ public class Player {
     }
 
     @JsonSerialize
-    public String getId() {
+    public Integer getId() {
         return id;
     }
 

@@ -6,24 +6,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GameResponse {
-    private final List<blackjack.model.Error> errors = new ArrayList<blackjack.model.Error>();
-    private final blackjack.model.Game game;
+    private final List<Error> errors = new ArrayList<Error>();
+    private final Account account;
+    private final Game game;
 
-    public GameResponse(blackjack.model.Game game) {
+    public GameResponse(List<Error> errors, Account account, Game game) {
+        this.account = account;
         this.game = game;
-    }
-
-    public void addError(blackjack.model.Error error) {
-        this.errors.add(error);
+        if (errors != null) {
+            this.errors.addAll(errors);
+        }
     }
 
     @JsonSerialize
-    public List<blackjack.model.Error> getErrors() {
+    public List<Error> getErrors() {
         return errors;
     }
 
     @JsonSerialize
-    public blackjack.model.Game getGame() {
+    public Account getAccount() {
+        return account;
+    }
+
+    @JsonSerialize
+    public Game getGame() {
         return game;
     }
 }
