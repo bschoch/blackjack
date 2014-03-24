@@ -1,12 +1,10 @@
 package blackjack.controller;
 
 import blackjack.GameRunner;
+import blackjack.model.Card;
 import blackjack.model.GameResponse;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 @Controller
 public class BlackjackController {
@@ -27,8 +25,8 @@ public class BlackjackController {
 
     @RequestMapping(value = "{accountId}/deal/{bet}",
             method = RequestMethod.GET)
-    public @ResponseBody GameResponse deal(@PathVariable Integer accountId, @PathVariable Integer bet) {
-        return gameRunner.deal(accountId, bet);
+    public @ResponseBody GameResponse deal(@PathVariable Integer accountId, @PathVariable Integer bet, @RequestParam(value = "debugSplitNumber", required = false) Card.Number debugSplitNumber) {
+        return gameRunner.deal(accountId, bet, debugSplitNumber);
     }
 
     @RequestMapping(value = "/{gameId}/hit",
@@ -47,5 +45,11 @@ public class BlackjackController {
             method = RequestMethod.GET)
     public @ResponseBody GameResponse doubleDown(@PathVariable Integer gameId) {
         return gameRunner.doubleDown(gameId);
+    }
+
+    @RequestMapping(value = "/{gameId}/split",
+            method = RequestMethod.GET)
+    public @ResponseBody GameResponse split(@PathVariable Integer gameId) {
+        return gameRunner.split(gameId);
     }
 }

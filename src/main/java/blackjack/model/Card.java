@@ -23,14 +23,14 @@ public class Card {
         return number.toString() + " " + suit.toString();
     }
 
-    enum Suit {
+    public enum Suit {
         Clubs,
         Diamonds,
         Spades,
         Hearts
     }
 
-    enum Number {
+    public enum Number {
         Ace,
         Two,
         Three,

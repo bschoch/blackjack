@@ -1,5 +1,6 @@
 package blackjack.model;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 import java.util.ArrayList;
@@ -8,11 +9,14 @@ import java.util.List;
 public class Player {
 
     private static Integer idCount = 0;
-    private Integer id;
+    private int id;
+    private int bet;
     private List<Card> cards = new ArrayList<Card>();
-    private Boolean showScore;
+    private Result result;
+    private boolean finished;
+    private boolean showScore;
 
-    public Player(Boolean showScore) {
+    public Player(boolean showScore) {
         this.id = idCount++;
         this.showScore = showScore;
     }
@@ -25,7 +29,8 @@ public class Player {
         cards.add(card);
     }
 
-    public Integer score() {
+    @JsonIgnore
+    public int calculateScore() {
         int score = 0, aces = 0;
 
         for (Card card : cards) {
@@ -48,28 +53,73 @@ public class Player {
     }
 
     @JsonSerialize
-    public Integer getId() {
+    public int getId() {
         return id;
     }
 
     @JsonSerialize
-    public String hand() {
-        StringBuffer stringBuffer = new StringBuffer();
-        for (int i = 0; i < cards.size(); ++i) {
-            if (i == 0 || showScore) {
-                stringBuffer.append(cards.get(i).toString());
-            }
-            if (showScore && (i+1) < cards.size()) {
-                stringBuffer.append(", ");
-            }
-        }
-        if (showScore) {
-            stringBuffer.append(" Score: ").append(score());
-        }
-        return stringBuffer.toString();
+    public int getBet() {
+        return bet;
     }
 
-    public void setShowScore(Boolean showScore) {
+    @JsonSerialize
+    public List<Card> getCards() {
+        if (showScore) {
+            return cards;
+        }
+        return cards.subList(0, 1);
+    }
+
+    @JsonSerialize
+    public Integer score() {
+        if (showScore) {
+            return calculateScore();
+        }
+        return null;
+    }
+
+    @JsonSerialize
+    public Result getResult() {
+        return result;
+    }
+
+    public void setResult(Result result) {
+        this.result = result;
+    }
+
+    @JsonIgnore
+    public boolean eligibleForSplit() {
+        if (cards.size() == 2 && (cards.get(0).getNumber() == cards.get(1).getNumber() || (cards.get(0).getNumber().ordinal() >= 9 && cards.get(1).getNumber().ordinal() >= 9))) {
+            return true;
+        }
+        return false;
+    }
+
+    //assumes eligible
+    @JsonIgnore
+    Card splitCards() {
+        return cards.remove(0);
+    }
+
+    public void setShowScore(boolean showScore) {
         this.showScore = showScore;
+    }
+
+    public void setBet(int bet) {
+        this.bet = bet;
+    }
+
+    public boolean getFinished() {
+        return finished;
+    }
+
+    public void setFinished(boolean finished) {
+        this.finished = finished;
+    }
+
+    public enum Result {
+        PLAYER,
+        DEALER,
+        PUSH
     }
 }

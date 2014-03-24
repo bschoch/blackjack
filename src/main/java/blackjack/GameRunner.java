@@ -31,7 +31,7 @@ public class GameRunner {
     }
 
 
-    public GameResponse deal(Integer accountId, Integer bet) {
+    public GameResponse deal(Integer accountId, Integer bet, Card.Number debugSplitNumber) {
         Account account = accountMap.get(accountId);
         if (account == null) {
             return new GameResponse(Arrays.asList(Error.ACCOUNT_NOT_FOUND), null, null);
@@ -45,7 +45,7 @@ public class GameRunner {
 
         Game game = new Game(account, bet);
         gameMap.put(game.getId(), game);
-        game.deal();
+        game.deal(debugSplitNumber);
         return new GameResponse(null, account, game);
     }
 
@@ -53,7 +53,7 @@ public class GameRunner {
         GameResponse gameResponse = getGameResponse(gameId);
 
         if (gameResponse.getErrors().isEmpty()) {
-            gameResponse.getGame().stand();
+            gameResponse.getGame().stand(gameResponse.getGame().getNextPlayer());
         }
 
         return gameResponse;
@@ -63,7 +63,7 @@ public class GameRunner {
         GameResponse gameResponse = getGameResponse(gameId);
 
         if (gameResponse.getErrors().isEmpty()) {
-            gameResponse.getGame().hit();
+            gameResponse.getGame().hit(gameResponse.getGame().getNextPlayer());
         }
 
         return gameResponse;
@@ -73,8 +73,24 @@ public class GameRunner {
         GameResponse gameResponse = getGameResponse(gameId);
 
         if (gameResponse.getErrors().isEmpty()) {
-            if (!gameResponse.getGame().doubleDown()) {
+            if (!gameResponse.getGame().doubleDown(gameResponse.getGame().getNextPlayer())) {
                 gameResponse.getErrors().add(Error.NEGATIVE_ACCOUNT_BALANCE);
+            }
+        }
+
+        return gameResponse;
+    }
+
+    public GameResponse split(Integer gameId) {
+        GameResponse gameResponse = getGameResponse(gameId);
+
+        if (gameResponse.getErrors().isEmpty()) {
+            if (!gameResponse.getGame().eligibleForSplit()) {
+                gameResponse.getErrors().add(Error.INELIGIBLE_FOR_SPLIT);
+            } else if (!gameResponse.getAccount().adjustBalance(-gameResponse.getGame().getNextPlayer().getBet())) {
+                gameResponse.getErrors().add(Error.NEGATIVE_ACCOUNT_BALANCE);
+            } else {
+                gameResponse.getGame().split();
             }
         }
 
@@ -86,7 +102,7 @@ public class GameRunner {
 
         if (game == null) {
             return new GameResponse(Arrays.asList(Error.GAME_NOT_FOUND), null, null);
-        } else if (game.getFinished()) {
+        } else if (game.getGameFinished()) {
             return new GameResponse(Arrays.asList(Error.GAME_COMPLETE), game.getAccount(), game);
         }
 

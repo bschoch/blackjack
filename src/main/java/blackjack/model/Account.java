@@ -22,7 +22,7 @@ public class Account {
         return balance;
     }
 
-    public synchronized boolean adjustBalance(Integer adjust) {
+    public synchronized boolean adjustBalance(int adjust) {
         if (balance + adjust < 0) {
             return false;
         }

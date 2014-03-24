@@ -3,24 +3,27 @@ package blackjack.model;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public class Game {
 
-    private static Integer idCount = 0;
-    private final Integer id = idCount++;
-    private Integer bet;
+    private static int idCount = 0;
+    private final int id = idCount++;
     private final Player dealer = new Player(false);
-    private final Player player = new Player(true);
+    private final List<Player> players = new ArrayList<Player>(Arrays.asList(new Player(true)));
     private final Account account;
     private final Deck deck = new Deck();
-    private Boolean finished = false;
 
     public Game(Account account, Integer bet) {
+        dealer.setBet(-1);
         this.account = account;
-        this.bet = bet;
+        this.getPlayers().get(0).setBet(bet);
     }
 
     @JsonSerialize
-    public Integer getId() {
+    public int getId() {
         return id;
     }
 
@@ -30,65 +33,92 @@ public class Game {
     }
 
     @JsonSerialize
-    public Player getPlayer() {
-        return player;
+    public List<Player> getPlayers() {
+        return players;
     }
 
-    public void deal() {
-        deck.shuffle();
-        player.add(deck.deal());
-        dealer.add(deck.deal());
-        player.add(deck.deal());
-        dealer.add(deck.deal());
-    }
-
-    public void hit() {
-        player.add(deck.deal());
-        if (player.score() > 21) {
-            finishGame();
-        }
-    }
-
-    public Boolean doubleDown() {
-        if (!account.adjustBalance(-bet)) {
-            return false;
-        }
-
-        bet *= 2;
-        player.add(deck.deal());
-        stand();
-        return true;
-    }
-
-    public void stand() {
-        while (dealer.score() < 17) {
-            dealer.add(deck.deal());
-        }
-        finishGame();
-    }
-
-    @JsonSerialize
-    public String getGameResult() {
-        if (finished) {
-            if (push()) {
-                return "PUSH";
-            } else if (playerWins()) {
-                return "PLAYER WINS";
-            } else {
-                return "DEALER WINS";
+    @JsonIgnore
+    public Player getNextPlayer() {
+        for (Player player : players) {
+            if (!player.getFinished()) {
+                return player;
             }
         }
         return null;
     }
 
     @JsonSerialize
-    public Boolean getFinished() {
-        return finished;
+    public Integer getNextPlayerId() {
+        Player player = getNextPlayer();
+        if (player != null) {
+            return player.getId();
+        }
+        return null;
+    }
+
+    public void deal(Card.Number debugSplitNumber) {
+        deck.shuffle();
+        players.get(0).add(deck.deal(debugSplitNumber));
+        dealer.add(deck.deal());
+        players.get(0).add(deck.deal(debugSplitNumber));
+        dealer.add(deck.deal());
+    }
+
+    public void hit(Player player) {
+        player.add(deck.deal());
+        if (player.calculateScore() > 21) {
+            finishPlayer(player);
+            if (getGameFinished()) {
+                finishGame();
+            }
+        }
+    }
+
+    public boolean doubleDown(Player player) {
+        if (!account.adjustBalance(-player.getBet())) {
+            return false;
+        }
+        player.setBet(player.getBet() * 2);
+        player.add(deck.deal());
+        stand(player);
+        return true;
+    }
+
+    public void split() {
+        Player player1 = players.get(0);
+        Player player2 = new Player(true);
+        player2.add(player1.splitCards());
+        player2.setBet(player1.getBet());
+        player2.setShowScore(false);
+        players.add(player2);
+        player1.add(deck.deal());
+        player2.add(deck.deal());
+    }
+
+    public boolean eligibleForSplit() {
+        return !(players.size() != 1 || !players.get(0).eligibleForSplit());
+    }
+
+    public void stand(Player player) {
+        finishPlayer(player);
+        if (getGameFinished()) {
+            while (dealer.calculateScore() < 17) {
+                dealer.add(deck.deal());
+            }
+            finishGame();
+        }
     }
 
     @JsonSerialize
-    public Integer getBet() {
-        return bet;
+    public boolean getGameFinished() {
+        boolean finished = true;
+        for (Player player : players) {
+            if (!player.getFinished()) {
+                finished = false;
+                break;
+            }
+        }
+        return finished;
     }
 
     @JsonIgnore
@@ -98,21 +128,35 @@ public class Game {
 
     private void finishGame() {
         getDealer().setShowScore(true);
-        this.finished = true;
-        if (push()) {
-            account.adjustBalance(bet);
-        } else if (playerWins()) {
-            account.adjustBalance(2 * bet);
+        getDealer().setFinished(true);
+        for (Player player : players) {
+            if (push(player)) {
+                player.setResult(Player.Result.PUSH);
+                account.adjustBalance(player.getBet());
+            } else if (playerWins(player)) {
+                player.setResult(Player.Result.PLAYER);
+                account.adjustBalance(2 * player.getBet());
+            } else {
+                player.setResult(Player.Result.DEALER);
+            }
         }
     }
 
     // assumes game is finished
-    private Boolean playerWins() {
-        return player.score() <= 21 && (dealer.score() > 21 || dealer.score() < player.score());
+    private boolean playerWins(Player player) {
+        return player.calculateScore() <= 21 && (dealer.calculateScore() > 21 || dealer.calculateScore() < player.calculateScore());
     }
 
     // assumes game is finished
-    private Boolean push() {
-        return player.score() <= 21 && dealer.score() <= 21 && player.score().equals(dealer.score());
+    private boolean push(Player player) {
+        return player.calculateScore() <= 21 && dealer.calculateScore() <= 21 && player.calculateScore() == dealer.calculateScore();
+    }
+
+    private void finishPlayer(Player player) {
+        player.setFinished(true);
+        Player next = getNextPlayer();
+        if (next != null) {
+            next.setShowScore(true);
+        }
     }
 }

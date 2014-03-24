@@ -29,6 +29,17 @@ public class Deck {
         cardIndex = 0;
     }
 
+    public Card deal(Card.Number debugSplitNumber) {
+        if (debugSplitNumber != null) {
+            for (int i = cardIndex; i < cards.length; ++i) {
+                if (cards[i].getNumber() == debugSplitNumber) {
+                    swap(cards, cardIndex, i);
+                }
+            }
+        }
+        return deal();
+    }
+
     public Card deal() {
         if (cardIndex < 52) {
             return cards[cardIndex++];
